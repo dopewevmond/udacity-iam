@@ -7,9 +7,9 @@ from urllib.request import urlopen
 
 app = Flask(__name__)
 
-AUTH0_DOMAIN = @TODO_REPLACE_WITH_YOUR_DOMAIN
+AUTH0_DOMAIN = 'dev-2cskx94v.us.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = @TODO_REPLACE_WITH_YOUR_API_AUDIENCE
+API_AUDIENCE = 'iam'
 
 
 class AuthError(Exception):
@@ -52,9 +52,14 @@ def get_token_auth_header():
 
 
 def verify_decode_jwt(token):
+    # loading all the jwks from our auth0 domain into a dictionary called `jwks`
     jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
     jwks = json.loads(jsonurl.read())
+
+    # getting the header of our jwt as a dictionary
     unverified_header = jwt.get_unverified_header(token)
+    print(f'unverified header is {unverified_header}')
+
     rsa_key = {}
     if 'kid' not in unverified_header:
         raise AuthError({
@@ -62,6 +67,7 @@ def verify_decode_jwt(token):
             'description': 'Authorization malformed.'
         }, 401)
 
+    # finding the jwk whose kid equals the kid on the jwt
     for key in jwks['keys']:
         if key['kid'] == unverified_header['kid']:
             rsa_key = {
@@ -71,6 +77,7 @@ def verify_decode_jwt(token):
                 'n': key['n'],
                 'e': key['e']
             }
+    # trying to decode the jwt with the rsa key
     if rsa_key:
         try:
             payload = jwt.decode(
@@ -116,6 +123,12 @@ def requires_auth(f):
         return f(payload, *args, **kwargs)
 
     return wrapper
+
+@app.route('/login-results')
+def login():
+    return 'login'   
+
+# @app.route('/') 
 
 @app.route('/headers')
 @requires_auth
