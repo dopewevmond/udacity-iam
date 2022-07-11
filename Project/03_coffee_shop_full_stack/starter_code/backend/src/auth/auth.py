@@ -83,7 +83,7 @@ def check_permissions(permission, payload):
         raise AuthError({
             'error': 'forbidden',
             'description': 'does not have the permission for this action'
-        }, 400)
+        }, 403)
     return True
 
 '''

@@ -29,16 +29,13 @@ CORS(app)
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks', methods=['GET'])
-@requires_auth('get:drinks')
-def get_drinks(payload):
+def get_drinks():
     drinks = Drink.query.all()
     
     return jsonify({
-        {
-            "success": True,
-            "drinks": [drink.short() for drink in drinks]
-        }
-    }, 200)
+        "success": True,
+        "drinks": [drink.short() for drink in drinks]
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -56,7 +53,7 @@ def get_drink_details(payload):
     return jsonify({
         "success": True,
         "drinks": [drink.long() for drink in drinks]
-    }, 200)
+    }), 200
 
 
 '''
@@ -101,9 +98,9 @@ def add_drink(payload):
         "drinks": {
             "id": drink_id,
             "title": title,
-            "recipe": recipe
+            "recipe": json.loads(recipe)
         }
-    }, 200)
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -144,9 +141,9 @@ def edit_drink(payload, id):
         "drinks": [{
             "id": drink.id,
             "title": drink.title,
-            "recipe": drink.recipe
+            "recipe": json.loads(drink.recipe)
         }]
-    }, 200)
+    }), 200
     
 
 '''
@@ -180,7 +177,7 @@ def delete_drink(id):
     return jsonify({
         "success": True,
         "delete": id
-    }, 200)
+    }), 200
 
 # Error Handling
 '''
@@ -220,6 +217,14 @@ def not_found(error):
         "message": "resource not found"
     }), 404
 
+@app.errorhandler(500)
+def internal_server_error(error):
+    return jsonify({
+        "success": False,
+        "error": 500,
+        "message": "internal server error"
+    }), 500
+
 '''
 @TODO implement error handler for AuthError
     error handler should conform to general task above
@@ -230,4 +235,4 @@ def authentication_error(error):
         "success": False,
         "error": error.status_code,
         "message": error.error
-    }, error.status_code)
+    }), error.status_code
