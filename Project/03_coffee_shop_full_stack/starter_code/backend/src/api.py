@@ -17,7 +17,7 @@ CORS(app)
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 !! Running this funciton will add one
 '''
-# db_drop_and_create_all()
+db_drop_and_create_all()
 
 # ROUTES
 '''
@@ -71,15 +71,15 @@ def add_drink(payload):
 # def add_drink():
     req_body = request.get_json()
     print(type(req_body))
-    title = req_body['title']
-    recipe = req_body['recipe']
+    title = req_body.get('title')
+    recipe = req_body.get('recipe')
     
     if not title or not recipe:
         abort(400)
 
     error = None
     try:
-        drink = Drink(title=title, recipe=recipe)
+        drink = Drink(title=title, recipe=json.dumps(recipe))
         db.session.add(drink)
         db.session.flush()
         drink_id = drink.id
@@ -95,11 +95,11 @@ def add_drink(payload):
 
     return jsonify({
         "success": True,
-        "drinks": {
+        "drinks": [{
             "id": drink_id,
             "title": title,
-            "recipe": json.loads(recipe)
-        }
+            "recipe": recipe
+        }]
     }), 200
 
 '''
@@ -119,31 +119,35 @@ def edit_drink(payload, id):
     req_body = request.get_json()
     if not req_body:
         abort(400)
+
     drink = Drink.query.get(id)
     if not drink:
         abort(404)
+
+    title, recipe = req_body.get('title'), req_body.get('recipe')
+    if not title and not recipe:
+        abort(400)
     
     error = None
     try:
-        for key, val in req_body.items():
-            setattr(drink, key, val)
+        if title:
+            drink.title = title
+        if recipe:
+            drink.recipe = json.dumps(recipe)
+        resp_drink = drink.long()
+        db.session.commit()
     except Exception as e:
-        print(e)
         error = True
         db.session.rollback()
     finally:
         db.session.close()
     if error:
-        abort(500)
+        abort(422)
 
     return jsonify({
-        "success": True,
-        "drinks": [{
-            "id": drink.id,
-            "title": drink.title,
-            "recipe": json.loads(drink.recipe)
-        }]
-    }), 200
+        'success': True,
+        'drinks': [resp_drink]
+    })
     
 
 '''
@@ -158,7 +162,7 @@ def edit_drink(payload, id):
 '''
 @app.route('/drinks/<int:id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
-def delete_drink(id):
+def delete_drink(payload, id):
     drink = Drink.query.get(id)
     if not drink:
         abort(404)
